@@ -53,6 +53,7 @@ module.exports = {
         outputFile: "gas-report.txt",
         noColors: true,
         coinmarketcap: COINMARKETCAP_API_KEY,
+        token: "SOL",
     },
     mocha: {
         timeout: 200000, // 200 seconds max for running tests

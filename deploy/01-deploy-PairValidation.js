@@ -1,10 +1,17 @@
 const { network } = require("hardhat")
 const { developmentChains } = require("../helper-hardhat-config.js")
 const { verify } = require("../utils/verify")
+const fs = require("fs")
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
+
+    // let tokenURIs
+
+    // if (process.env.PINATA_UPLOAD == "true") {
+    //     tokenURIs = await handleTokenUris()
+    // }
 
     log("----------------------------------------------------")
     arguments = []
@@ -23,3 +30,9 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 }
 
 module.exports.tags = ["all", "pairvalidation", "main"]
+
+// function handleTokenUris() {
+//     tokenUris = []
+
+//     return tokenUris
+// }

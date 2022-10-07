@@ -4,6 +4,8 @@ const { developmentChains } = require("../../helper-hardhat-config.js")
 
 describe("PairValidation Unit Tests", function () {
     let pairValidation, deployer, account1
+    let uriS =
+        '{"name":"Pair Programming","description":"Pair Programming token for Jan Bieniek with Scott Werner","attributes":[{"trait_type":"Sublayer NFTs early user","value":404}],"image":"ipfs://QmT6ucfKptoW9VxriBHPmBRatoSVPuyYHa57uWNWxzaW3D"}'
 
     beforeEach(async () => {
         accounts = await ethers.getSigners()
@@ -17,6 +19,8 @@ describe("PairValidation Unit Tests", function () {
         it("Initializes the constructor properly", async function () {
             const tokenCounter = await pairValidation.getTokenCounter()
             assert.equal(tokenCounter, 0)
+            const mappingSize = await pairValidation.getMappingSize()
+            assert.equal(mappingSize, 0)
         })
     })
     describe("Submit request for Nft", async function () {
@@ -25,25 +29,28 @@ describe("PairValidation Unit Tests", function () {
                 await pairValidation.submitRequestForNft(
                     account1.address,
                     "Jan Bieniek",
-                    "Scott Werner"
+                    "Scott Werner",
+                    2
                 )
             ).to.emit("RequestSubmitted")
         })
-        it("Checks if the tokenId is correct", async function () {
+        it("Checks if the previously request exists", async function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             const request = await pairValidation.getNftRequest(account1.address)
-            const id = request.id
-            assert.equal("1", id.toString())
+            const exist = request.exist
+            assert.equal("1", exist.toString())
         })
         it("Checks if the requestor address is correct", async function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             const request = await pairValidation.getNftRequest(account1.address)
             const requestor = request.requestorAddress
@@ -52,10 +59,11 @@ describe("PairValidation Unit Tests", function () {
         it("Increases mapping size by 1", async function () {
             const mappingSize1 = await pairValidation.getMappingSize()
             assert.equal(mappingSize1, 0)
-            await pairValidation.submitRequestForNft(
+            await pairValidation.submitRequestForNft(``
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             const mappingSize2 = await pairValidation.getMappingSize()
             assert.equal(mappingSize2, 1)
@@ -64,19 +72,26 @@ describe("PairValidation Unit Tests", function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             await expect(
-                pairValidation.submitRequestForNft(account1.address, "Jan Bieniek", "Scott Werner")
+                pairValidation.submitRequestForNft(
+                    account1.address,
+                    "Jan Bieniek",
+                    "Scott Werner",
+                    2
+                )
             ).to.be.revertedWith("PairValidation__DuplicateRequest")
         })
-    })
+    }) // end of SubmitRequest
     describe("Accept Nft", async function () {
         it("User successfully accepts a previously requested NFT and emits event", async function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             pairValidation = await pairValidation.connect(account1)
             expect(await pairValidation.acceptNft()).to.emit("NftMinted")
@@ -87,7 +102,8 @@ describe("PairValidation Unit Tests", function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             pairValidation = await pairValidation.connect(account1)
             await pairValidation.acceptNft()
@@ -98,20 +114,20 @@ describe("PairValidation Unit Tests", function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             pairValidation = await pairValidation.connect(account1)
             await pairValidation.acceptNft()
-            const tokenUriHardcoded =
-                "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json"
-            const tokenUri = await pairValidation.getTokenURI()
-            assert.equal(tokenUri, tokenUriHardcoded)
+            const tokenUri = await pairValidation.getTokenURI(1)
+            assert.equal(tokenUri, uriS)
         })
         it("Decreases mapping size by 1 when an Nft is minted", async function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             const mappingSize2 = await pairValidation.getMappingSize()
             assert.equal(mappingSize2, 1)
@@ -127,17 +143,17 @@ describe("PairValidation Unit Tests", function () {
         })
     })
     describe("TokenURI", async function () {
-        it("returns the tokenURI correctly", async function () {
-            const tokenURI = await pairValidation.getTokenURI()
+        it("returns the tokenURI", async function () {
             await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
-                "Scott Werner"
+                "Scott Werner",
+                2
             )
             pairValidation = await pairValidation.connect(account1)
             await pairValidation.acceptNft()
-            const tokenUriFunction = await pairValidation.tokenURI(1)
-            assert.equal(tokenURI, tokenUriFunction)
+            const tokenURI = await pairValidation.getTokenURI(1)
+            console.log(tokenURI)
         })
     })
 })

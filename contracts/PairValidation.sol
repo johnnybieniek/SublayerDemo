@@ -4,22 +4,39 @@ pragma solidity ^0.8.8;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 
 error PairValidation__DuplicateRequest();
 error PairValidation__NothingToAccept();
 error PairValidation__URI_QueryFor_NonExistentToken();
 
-contract PairValidation is ERC721 {
+contract PairValidation is ERC721URIStorage, Ownable {
     uint256 private s_tokenCounter;
     uint256 private s_mappingSize;
-    string public constant TOKEN_URI =
-        "ipfs://bafybeig37ioir76s7mg5oobetncojcm3c3hxasyd4rvid4jqhy4gkaheg4/?filename=0-PUG.json";
+
+    string[5] private imageArr = [
+        "ipfs://Qmc8zbipExt4WY53isyxWQeVBYr6iM4Q7vTrWH6sLkhtus",
+        "ipfs://Qmf7cT1HG6cmMuyyibTtApwKJwu8xebNJ2trWsgHRrd4gU",
+        "ipfs://QmT6ucfKptoW9VxriBHPmBRatoSVPuyYHa57uWNWxzaW3D",
+        "ipfs://Qmf59LDgk2duq7UseD7DxK4LG89NmGo2eUJC3z5jB5Fxfn",
+        "ipfs://QmVUv6ZH7E317jGSXAXqo7xYRshY2VL939Fhsh2CWhJs6K"
+    ];
+
+    string[5] private imageName = [
+        "BrokeVim",
+        "Origin Master",
+        "Pair Programming",
+        "Screw it!",
+        "Solo"
+    ];
 
     struct RequestDetails {
         address requestorAddress;
-        uint256 id;
+        uint256 exist;
         string name1;
         string name2;
+        uint256 tokenType;
     }
 
     event RequestSubmitted(address indexed verifier);
@@ -37,13 +54,13 @@ contract PairValidation is ERC721 {
 
     modifier hasRequestToAccept(address acceptor) {
         RequestDetails memory reqDetails = s_activeRequests[acceptor];
-        if (reqDetails.id <= 0) {
+        if (reqDetails.exist < 1) {
             revert PairValidation__NothingToAccept();
         }
         _;
     }
 
-    constructor() ERC721("PairProgramming", "PPM") {
+    constructor() ERC721("PairTesting", "PTS") {
         s_tokenCounter = 0;
         s_mappingSize = 0;
     }
@@ -51,29 +68,65 @@ contract PairValidation is ERC721 {
     function submitRequestForNft(
         address verifier,
         string memory name1,
-        string memory name2
+        string memory name2,
+        uint256 imageId
     ) external NoDuplicate(msg.sender, verifier) {
-        s_activeRequests[verifier] = RequestDetails(msg.sender, 1, name1, name2);
+        s_activeRequests[verifier] = RequestDetails(msg.sender, 1, name1, name2, imageId);
         s_mappingSize++;
         emit RequestSubmitted(verifier);
     }
 
     function acceptNft() external hasRequestToAccept(msg.sender) {
         address requestor = s_activeRequests[msg.sender].requestorAddress;
+        string memory requestorURI = createTokenURI(
+            s_activeRequests[msg.sender].name1,
+            s_activeRequests[msg.sender].name2,
+            s_activeRequests[msg.sender].tokenType
+        );
         _safeMint(requestor, s_tokenCounter);
+        _setTokenURI(s_tokenCounter, requestorURI);
         s_tokenCounter = s_tokenCounter + 1;
+        string memory senderURI = createTokenURI(
+            s_activeRequests[msg.sender].name1,
+            s_activeRequests[msg.sender].name2,
+            s_activeRequests[msg.sender].tokenType
+        );
         _safeMint(msg.sender, s_tokenCounter);
+        _setTokenURI(s_tokenCounter, senderURI);
         s_tokenCounter = s_tokenCounter + 1;
         delete (s_activeRequests[msg.sender]);
         s_mappingSize--;
         emit NftMinted(msg.sender);
     }
 
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        if (!_exists(tokenId)) {
-            revert PairValidation__URI_QueryFor_NonExistentToken();
-        }
-        return TOKEN_URI;
+    function createTokenURI(
+        string memory name1,
+        string memory name2,
+        uint256 imageId
+    ) public view virtual returns (string memory) {
+        string memory image = imageArr[imageId];
+        string memory nftName = imageName[imageId];
+        string memory names = string(
+            abi.encodePacked("Pair Programming token for ", name1, " with ", name2)
+        );
+        return
+            string(
+                abi.encodePacked(
+                    '{"name":"',
+                    nftName,
+                    '","description":"',
+                    names,
+                    '","attributes":[{"trait_type":"Sublayer NFTs early user","value":404}],"image":"',
+                    image,
+                    '"}'
+                )
+            );
+    }
+
+    function getTokenURI(uint256 tokenId) public view virtual returns (string memory) {
+        require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+
+        return tokenURI(tokenId);
     }
 
     function getTokenCounter() public view returns (uint256) {
@@ -84,38 +137,7 @@ contract PairValidation is ERC721 {
         return s_activeRequests[verifier];
     }
 
-    function getTokenURI() public pure returns (string memory) {
-        return TOKEN_URI;
-    }
-
     function getMappingSize() public view returns (uint256) {
         return s_mappingSize;
     }
 }
-
-/*
-function tokenURI(uint256 tokenId, string memory name1, string memory name 2) public view virtual override returns (string memory) {
-        if (!_exists(tokenId)) {
-            revert PairValidation__URI_QueryFor_NonExistentToken();
-        }
-        string memory names = string.concat("Pair Programming token for ",name1," with ", name2);
-        return
-            string(
-                abi.encodePacked(
-                    _baseURI(),
-                    Base64.encode(
-                        bytes(
-                            abi.encodePacked(
-                                '{"name":"',
-                                name(), // You can add whatever name here
-                                '", "description":"An NFT that changes based on the Chainlink Feed", ',
-                                '"attributes": [{"trait_type": "coolness", "value": 100}], "image":"',
-                                imageURI,
-                                '"}'
-                            )
-                        )
-                    )
-                )
-            );
-    }
-*/

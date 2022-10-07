@@ -59,7 +59,7 @@ describe("PairValidation Unit Tests", function () {
         it("Increases mapping size by 1", async function () {
             const mappingSize1 = await pairValidation.getMappingSize()
             assert.equal(mappingSize1, 0)
-            await pairValidation.submitRequestForNft(``
+            await pairValidation.submitRequestForNft(
                 account1.address,
                 "Jan Bieniek",
                 "Scott Werner",
